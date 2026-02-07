@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trinity AI Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-dark: #0a1628;
+            --primary-blue: #1e3a5f;
+            --accent-blue: #2c5f8d;
+            --light-blue: #4a7ba7;
+            --highlight: #64b5f6;
+            --text-primary: #e8eef5;
+            --text-secondary: #b0c4de;
+            --border-color: #2d4a6e;
+            --success: #4caf50;
+            --transition: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Sans 3', sans-serif;
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-blue) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 50%, rgba(100, 181, 246, 0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, rgba(44, 95, 141, 0.08) 0%, transparent 50%);
+            animation: ambientMove 20s ease-in-out infinite;
+        }
+
+        @keyframes ambientMove {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(-5%, -5%) rotate(5deg); }
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: rgba(30, 58, 95, 0.4);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 85vh;
+            max-height: 700px;
+            position: relative;
+            z-index: 1;
+            animation: containerFadeIn 0.8s var(--transition);
+        }
+
+        @keyframes containerFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--accent-blue) 0%, var(--primary-blue) 100%);
+            padding: 28px 32px;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                var(--highlight) 50%, 
+                transparent 100%);
+            animation: headerGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes headerGlow {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--highlight) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 300;
+            letter-spacing: 0.3px;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 32px;
+            right: 32px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            scroll-behavior: smooth;
+        }
+
+        .chat-area::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-area::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 4px;
+        }
+
+        .chat-area::-webkit-scrollbar-thumb {
+            background: var(--accent-blue);
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+
+        .chat-area::-webkit-scrollbar-thumb:hover {
+            background: var(--light-blue);
+        }
+
+        .message {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            animation: messageSlideIn 0.4s var(--transition);
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+
+        @keyframes messageSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .avatar.bot {
+            background: linear-gradient(135deg, var(--accent-blue) 0%, var(--light-blue) 100%);
+            box-shadow: 0 4px 12px rgba(100, 181, 246, 0.3);
+            color: var(--text-primary);
+        }
+
+        .avatar.user {
+            background: linear-gradient(135deg, var(--light-blue) 0%, var(--highlight) 100%);
+            box-shadow: 0 4px 12px rgba(100, 181, 246, 0.4);
+            color: var(--text-primary);
+        }
+
+        .message-content {
+            max-width: 75%;
+            background: rgba(44, 95, 141, 0.3);
+            padding: 16px 20px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            line-height: 1.6;
+            font-size: 15px;
+            position: relative;
+        }
+
+        .message.user .message-content {
+            background: rgba(74, 123, 167, 0.4);
+            border: 1px solid rgba(100, 181, 246, 0.2);
+        }
+
+        .timestamp {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            opacity: 0.7;
+        }
+
+        .typing-indicator {
+            display: none;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .typing-indicator.active {
+            display: flex;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 6px;
+            padding: 16px 20px;
+            background: rgba(44, 95, 141, 0.3);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-secondary);
+            animation: typingBounce 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-8px); }
+        }
+
+        .input-area {
+            padding: 24px 32px;
+            background: rgba(30, 58, 95, 0.6);
+            border-top: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
+        }
+
+        .input-container {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        #userInput {
+            flex: 1;
+            background: rgba(10, 22, 40, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px 18px;
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: 'Source Sans 3', sans-serif;
+            resize: none;
+            outline: none;
+            transition: all 0.3s var(--transition);
+            max-height: 120px;
+            min-height: 48px;
+        }
+
+        #userInput:focus {
+            border-color: var(--light-blue);
+            background: rgba(10, 22, 40, 0.7);
+            box-shadow: 0 0 0 3px rgba(100, 181, 246, 0.1);
+        }
+
+        #userInput::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.6;
+        }
+
+        #sendBtn {
+            background: linear-gradient(135deg, var(--accent-blue) 0%, var(--light-blue) 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 14px 28px;
+            color: var(--text-primary);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s var(--transition);
+            box-shadow: 0 4px 12px rgba(100, 181, 246, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #sendBtn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        #sendBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(100, 181, 246, 0.4);
+        }
+
+        #sendBtn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        #sendBtn:active {
+            transform: translateY(0);
+        }
+
+        #sendBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .welcome-message {
+            text-align: center;
+            padding: 40px 20px;
+            opacity: 0;
+            animation: fadeInUp 0.8s var(--transition) 0.3s forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .welcome-message h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: var(--highlight);
+        }
+
+        .welcome-message p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .suggestions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .suggestion-btn {
+            background: rgba(44, 95, 141, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s var(--transition);
+            text-align: left;
+        }
+
+        .suggestion-btn:hover {
+            background: rgba(74, 123, 167, 0.4);
+            border-color: var(--light-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(100, 181, 246, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                height: 100vh;
+                max-height: none;
+                border-radius: 0;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .status-indicator {
+                top: 24px;
+                right: 20px;
+            }
+
+            .chat-area {
+                padding: 20px;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+
+            .input-area {
+                padding: 16px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Trinity AI Assistant</h1>
+            <p>Assistant intelligent basé sur l'architecture Mixture-of-Experts</p>
+            <div class="status-indicator">
+                <span class="status-dot"></span>
+                <span>En ligne</span>
+            </div>
+        </div>
+
+        <div class="chat-area" id="chatArea">
+            <div class="welcome-message">
+                <h2>Bienvenue sur Trinity AI</h2>
+                <p>Je suis un assistant intelligent prêt à vous aider dans vos tâches quotidiennes.<br>Posez-moi vos questions ou choisissez une suggestion ci-dessous.</p>
+                <div class="suggestions">
+                    <button class="suggestion-btn" onclick="sendSuggestion('Comment fonctionne l\'intelligence artificielle ?')">
+                        Comment fonctionne l'IA ?
+                    </button>
+                    <button class="suggestion-btn" onclick="sendSuggestion('Quelles sont tes capacités ?')">
+                        Quelles sont tes capacités ?
+                    </button>
+                    <button class="suggestion-btn" onclick="sendSuggestion('Aide-moi à organiser ma journée')">
+                        Organiser ma journée
+                    </button>
+                </div>
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="avatar bot">T</div>
+                <div class="typing-dots">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-container">
+                <textarea 
+                    id="userInput" 
+                    placeholder="Écrivez votre message..."
+                    rows="1"
+                ></textarea>
+                <button id="sendBtn" onclick="sendMessage()">Envoyer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatArea = document.getElementById('chatArea');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        let messageCount = 0;
+
+        // Réponses pré-définies du bot
+        const botResponses = {
+            greetings: [
+                "Bonjour ! Comment puis-je vous aider aujourd'hui ?",
+                "Salut ! Ravi de vous rencontrer. Que puis-je faire pour vous ?",
+                "Bienvenue ! Je suis là pour répondre à vos questions."
+            ],
+            help: [
+                "Je peux vous aider avec de nombreuses tâches : répondre à vos questions, fournir des informations, ou simplement discuter. Que souhaitez-vous savoir ?",
+                "Mes capacités incluent l'assistance dans la recherche d'informations, l'aide à la résolution de problèmes, et bien plus encore. Comment puis-je vous être utile ?"
+            ],
+            ai: [
+                "L'intelligence artificielle est un domaine fascinant qui vise à créer des systèmes capables d'effectuer des tâches nécessitant généralement l'intelligence humaine. Les modèles comme moi utilisent des réseaux de neurones profonds pour comprendre et générer du langage naturel.",
+                "L'IA moderne repose sur l'apprentissage automatique et les réseaux de neurones. Des modèles comme Trinity utilisent une architecture Mixture-of-Experts pour traiter l'information de manière efficace avec des milliards de paramètres."
+            ],
+            organization: [
+                "Pour bien organiser votre journée, je vous suggère de : 1) Prioriser vos tâches les plus importantes, 2) Planifier des pauses régulières, 3) Définir des objectifs clairs pour chaque période. Voulez-vous que j'approfondisse l'un de ces points ?",
+                "L'organisation efficace commence par une bonne planification. Identifiez vos priorités, bloquez du temps pour les tâches importantes, et n'oubliez pas de prévoir des moments de repos."
+            ],
+            default: [
+                "C'est une excellente question. Pouvez-vous m'en dire plus pour que je puisse vous aider de manière plus précise ?",
+                "Intéressant ! Je vais faire de mon mieux pour vous répondre. Pourriez-vous préciser votre demande ?",
+                "Je comprends votre question. Laissez-moi y réfléchir et vous fournir une réponse appropriée.",
+                "Merci pour votre message. Je suis là pour vous aider. Pouvez-vous me donner plus de détails ?"
+            ]
+        };
+
+        // Fonction pour obtenir une réponse du bot
+        function getBotResponse(userMessage) {
+            const message = userMessage.toLowerCase();
+            
+            if (message.match(/bonjour|salut|hello|hi|hey/)) {
+                return botResponses.greetings[Math.floor(Math.random() * botResponses.greetings.length)];
+            } else if (message.match(/aide|help|capacité|peux-tu|que fais/)) {
+                return botResponses.help[Math.floor(Math.random() * botResponses.help.length)];
+            } else if (message.match(/intelligence artificielle|ia|ai|machine learning|apprentissage/)) {
+                return botResponses.ai[Math.floor(Math.random() * botResponses.ai.length)];
+            } else if (message.match(/organis|planif|journée|temps|productiv/)) {
+                return botResponses.organization[Math.floor(Math.random() * botResponses.organization.length)];
+            } else {
+                return botResponses.default[Math.floor(Math.random() * botResponses.default.length)];
+            }
+        }
+
+        // Fonction pour obtenir l'heure actuelle
+        function getCurrentTime() {
+            const now = new Date();
+            return now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Fonction pour ajouter un message
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            messageDiv.style.animationDelay = `${messageCount * 0.1}s`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = `avatar ${isUser ? 'user' : 'bot'}`;
+            avatar.textContent = isUser ? 'U' : 'T';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerHTML = `
+                ${content}
+                <div class="timestamp">${getCurrentTime()}</div>
+            `;
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(contentDiv);
+            
+            // Insérer avant l'indicateur de saisie
+            chatArea.insertBefore(messageDiv, typingIndicator);
+            messageCount++;
+            
+            // Scroll vers le bas
+            setTimeout(() => {
+                chatArea.scrollTop = chatArea.scrollHeight;
+            }, 100);
+        }
+
+        // Fonction pour afficher l'indicateur de saisie
+        function showTypingIndicator() {
+            typingIndicator.classList.add('active');
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        // Fonction pour masquer l'indicateur de saisie
+        function hideTypingIndicator() {
+            typingIndicator.classList.remove('active');
+        }
+
+        // Fonction pour envoyer un message
+        function sendMessage() {
+            const message = userInput.value.trim();
+            
+            if (message === '') return;
+            
+            // Ajouter le message de l'utilisateur
+            addMessage(message, true);
+            
+            // Effacer l'input
+            userInput.value = '';
+            userInput.style.height = 'auto';
+            
+            // Désactiver le bouton
+            sendBtn.disabled = true;
+            
+            // Afficher l'indicateur de saisie
+            showTypingIndicator();
+            
+            // Simuler un délai de réponse
+            setTimeout(() => {
+                hideTypingIndicator();
+                const botResponse = getBotResponse(message);
+                addMessage(botResponse, false);
+                sendBtn.disabled = false;
+                userInput.focus();
+            }, 1500 + Math.random() * 1000);
+        }
+
+        // Fonction pour envoyer une suggestion
+        function sendSuggestion(text) {
+            userInput.value = text;
+            sendMessage();
+        }
+
+        // Auto-resize du textarea
+        userInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // Envoyer avec Enter (Shift+Enter pour nouvelle ligne)
+        userInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Focus sur l'input au chargement
+        window.addEventListener('load', () => {
+            userInput.focus();
+        });
+    </script>
+</body>
+</html>
